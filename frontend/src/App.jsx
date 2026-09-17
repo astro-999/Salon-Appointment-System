@@ -5,6 +5,7 @@ function App() {
   const [services, setServices] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [form, setForm] = useState({ name: "", price: "", duration: "" });
+  const [editingId, setEditingId] = useState(null);
   const [bookingForm, setBookingForm] = useState({
     customer_name: "",
     customer_phone: "",
@@ -34,8 +35,10 @@ function App() {
 
   const addService = (e) => {
     e.preventDefault();
-    fetch("/api/services/", {
-      method: "POST",
+    const url = editingId ? `/api/services/${editingId}/` : "/api/services/";
+    const method = editingId ? "PUT" : "POST";
+    fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.name,
@@ -46,8 +49,14 @@ function App() {
       .then((r) => r.json())
       .then(() => {
         setForm({ name: "", price: "", duration: "" });
+        setEditingId(null);
         loadAll();
       });
+  };
+
+  const startEdit = (s) => {
+    setForm({ name: s.name, price: s.price, duration: s.duration });
+    setEditingId(s.id);
   };
 
   const book = (e) => {
@@ -64,7 +73,14 @@ function App() {
       if (!r.ok) alert(d.non_field_errors || JSON.stringify(d));
       else {
         alert("Booked!");
-        setBookingForm({customer_name:'', customer_phone:'', service:'', date:'', time:'', notes:''});
+        setBookingForm({
+          customer_name: "",
+          customer_phone: "",
+          service: "",
+          date: "",
+          time: "",
+          notes: "",
+        });
         loadAll();
         setTab("appointments");
       }
@@ -81,7 +97,6 @@ function App() {
       }}
     >
       <h2>Salon Booking</h2>
-
       <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
         {["services", "booking", "appointments"].map((t) => (
           <button
@@ -107,7 +122,7 @@ function App() {
 
       {tab === "services" && (
         <div>
-          <h3>Add Service</h3>
+          <h3>{editingId ? "Edit Service" : "Add Service"}</h3>
           <form
             onSubmit={addService}
             style={{ display: "flex", gap: 8, marginBottom: 24 }}
@@ -154,12 +169,30 @@ function App() {
                 borderRadius: 4,
                 border: "none",
                 background: "#333",
-                color: "#fff",
+                color: "#4ef10e",
                 cursor: "pointer",
               }}
             >
-              Add
+              {editingId ? "Update" : "Add"}
             </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm({ name: "", price: "", duration: "" });
+                }}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 4,
+                  border: "1px solid #ccc",
+                  background: "#08add6",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            )}
           </form>
 
           {services.map((s) => (
@@ -178,22 +211,37 @@ function App() {
               <span>
                 {s.name} · Rs.{s.price} · {s.duration}min
               </span>
-              <button
-                onClick={() =>
-                  fetch(`/api/services/${s.id}/`, { method: "DELETE" }).then(
-                    loadAll,
-                  )
-                }
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 4,
-                  border: "1px solid #3b2f2f",
-                  background: "#f3750e",
-                  cursor: "pointer",
-                }}
-              >
-                Delete
-              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  onClick={() => startEdit(s)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 4,
+                    border: "1px solid #3b2f2f",
+                    background: "#d890a6",
+                    color: "#0a59eb",
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() =>
+                    fetch(`/api/services/${s.id}/`, { method: "DELETE" }).then(
+                      loadAll,
+                    )
+                  }
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 4,
+                    border: "1px solid #3b2f2f",
+                    background: "#f3750e",
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -326,13 +374,13 @@ function App() {
                 borderRadius: 8,
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column" ,gap: 4}}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <strong>{a.customer_name}</strong> ({a.customer_phone})<br />
                 <small>
                   {a.service_detail?.name} · {a.date} · {a.time}
                 </small>
               </div>
-              <div style={{ display: "flex", gap: 10}}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <select
                   value={a.status}
                   onChange={(e) =>
@@ -343,7 +391,6 @@ function App() {
                     }).then(loadAll)
                   }
                   style={{
-              
                     padding: "6px 8px",
                     borderRadius: 4,
                     border: "1px solid #0de042",

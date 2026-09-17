@@ -31,7 +31,8 @@ Staff can manage services and appointments.
 
 ### How to Run - Frontend
 1. Open new terminal in `frontend` folder
-2. Install:
+2. Install npm:
+    npm install
     npm run dev
 
     Frontend will run on http://127.0.0.1:5173
